@@ -1,6 +1,7 @@
 import { eq } from "drizzle-orm";
 import { db } from "../config/database";
 import { users, sessions } from "../db/schema";
+import { UnauthorizedError } from "../errors/auth-error";
 
 export interface RegisterUserInput {
   name: string;
@@ -39,7 +40,7 @@ export async function loginUser(input: LoginUserInput) {
     .limit(1);
 
   if (!user) {
-    throw new Error("Email atau password salah");
+    throw new UnauthorizedError("Email atau password salah");
   }
 
   const isPasswordValid = await Bun.password.verify(
@@ -48,7 +49,7 @@ export async function loginUser(input: LoginUserInput) {
   );
 
   if (!isPasswordValid) {
-    throw new Error("Email atau password salah");
+    throw new UnauthorizedError("Email atau password salah");
   }
 
   const token = crypto.randomUUID();
@@ -77,24 +78,20 @@ export async function getCurrentUser(token: string) {
     .limit(1);
 
   if (!result) {
-    throw new Error("Unauthorized");
+    throw new UnauthorizedError("Unauthorized");
   }
 
   return result;
 }
 
 export async function logoutUser(token: string) {
-  const [session] = await db
-    .select()
-    .from(sessions)
-    .where(eq(sessions.token, token))
-    .limit(1);
+  const [result] = await db
+    .delete(sessions)
+    .where(eq(sessions.token, token));
 
-  if (!session) {
-    throw new Error("Unauthorized");
+  if (result.affectedRows === 0) {
+    throw new UnauthorizedError("Unauthorized");
   }
-
-  await db.delete(sessions).where(eq(sessions.token, token));
 
   return "OK";
 }
