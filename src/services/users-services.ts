@@ -45,7 +45,7 @@ export async function loginUser(input: LoginUserInput) {
 
   const isPasswordValid = await Bun.password.verify(
     input.password,
-    user.password
+    user.password,
   );
 
   if (!isPasswordValid) {
@@ -85,9 +85,7 @@ export async function getCurrentUser(token: string) {
 }
 
 export async function logoutUser(token: string) {
-  const [result] = await db
-    .delete(sessions)
-    .where(eq(sessions.token, token));
+  const [result] = await db.delete(sessions).where(eq(sessions.token, token));
 
   if (result.affectedRows === 0) {
     throw new UnauthorizedError("Unauthorized");
